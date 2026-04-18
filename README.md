@@ -1,42 +1,80 @@
 ![](../../workflows/gds/badge.svg) ![](../../workflows/docs/badge.svg) ![](../../workflows/test/badge.svg) ![](../../workflows/fpga/badge.svg)
 
-# Tiny Tapeout Verilog Project Template
+# Tiny Tapeout Verilog Template (Nix)
 
-- [Read the documentation for project](docs/info.md)
+A Tiny Tapeout Verilog project template with a Nix flake for one-command setup. Aims to replace the upstream devcontainer / manual-install flow with a single `nix develop` on macOS and Linux.
 
-## What is Tiny Tapeout?
+> Based on the [official TT Verilog template](https://github.com/TinyTapeout/tt10-verilog-template).
 
-Tiny Tapeout is an educational project that aims to make it easier and cheaper than ever to get your digital and analog designs manufactured on a real chip.
+## TLDR:
+```sh
+# After installing Nix:
+nix run nixpkgs#cachix -- use librelane # Use librelane binary cache
+nix develop                             # Enter dev shell with all dependencies
+./tt/tt_tool.py --harden --no-docker    # Harden silicon
+./tt/tt_fpga.py harden                  # Harden FPGA bitstream
+./tt/tt_fpga.py configure --port /dev/<your-tty> --upload --clockrate 12000000
+cd test && make -B                      # RTL test
+cd test && make -B GATES=yes            # gate-level test (needs prior harden)
+```
 
-To learn more and get started, visit https://tinytapeout.com.
+## What you get
 
-## Set up your Verilog project
+- `nix develop` — full EDA toolchain (librelane, yosys, iverilog, klayout, openroad, magic, netgen, verilator, nextpnr, icestorm) plus `tt-support-tools` and the sky130A PDK, installed automatically on first enter.
+- `nix run .#test` / `.#harden` / `.#fpga` — the common workflows as one-liners.
+- Works on `aarch64-darwin`, `x86_64-linux`, `aarch64-linux`.
 
-1. Add your Verilog files to the `src` folder.
-2. Edit the [info.yaml](info.yaml) and update information about your project, paying special attention to the `source_files` and `top_module` properties. If you are upgrading an existing Tiny Tapeout project, check out our [online info.yaml migration tool](https://tinytapeout.github.io/tt-yaml-upgrade-tool/).
-3. Edit [docs/info.md](docs/info.md) and add a description of your project.
-4. Adapt the testbench to your design. See [test/README.md](test/README.md) for more information.
+## Prerequisites
 
-The GitHub action will automatically build the ASIC files using [LibreLane](https://www.zerotoasiccourse.com/terminology/librelane/).
+1. [Install Nix](https://github.com/DeterminateSystems/nix-installer) (the Determinate installer is a good choice. It enables flakes by default).
+   ```sh
+   curl -fsSL https://install.determinate.systems/nix | sh -s -- install
+   ```
+2. If you installed upstream Nix instead, enable flakes:
+   ```sh
+   mkdir -p ~/.config/nix
+   echo 'experimental-features = nix-command flakes' >> ~/.config/nix/nix.conf
+   ```
+3. Enable the LibreLane binary cache so the first `nix develop` doesn't build an entire EDA stack from source:
+   ```sh
+   nix run nixpkgs#cachix -- use librelane
+   ```
 
-## Enable GitHub actions to build the results page
+## Quick start
 
-- [Enabling GitHub Pages](https://tinytapeout.com/faq/#my-github-action-is-failing-on-the-pages-part)
+```sh
+# Use this repo as a template on GitHub, then:
+git clone git@github.com:<you>/<your-project>.git
+cd <your-project>
+nix develop
+```
+
+First enter takes a few minutes (downloads prebuilt tools from the cache, clones `tt-support-tools`, creates the Python venv, installs the sky130A PDK into `.pdk/`). Subsequent enters are instant.
+
+## Common tasks
+
+All runnable from the project root without first entering the devshell:
+
+| Command | What it does |
+|---|---|
+| `nix run .#test`   | RTL simulation (cocotb + icarus), equivalent to `cd test && make -B` |
+| `nix run .#harden` | ASIC harden flow for Tiny Tapeout (`tt/tt_tool.py --harden --no-docker`) |
+| `nix run .#fpga`   | FPGA bitstream build for the TT FPGA breakout (`tt/tt_fpga.py harden`) |
+
+## Making it yours
+
+1. Put your Verilog under `src/` (the default `project.v` is a stub).
+2. Edit `info.yaml` — `top_module`, `source_files`, project metadata. See the [info.yaml migration tool](https://tinytapeout.github.io/tt-yaml-upgrade-tool/).
+3. Describe the design in `docs/info.md`.
+4. Adapt the testbench in `test/tb.v` and `test/test.py`. See [test/README.md](test/README.md).
+
+## CI
+
+The upstream GitHub Actions workflows (`.github/workflows/{gds,docs,test,fpga}.yaml`) are unchanged and continue to build on TT's hosted runners — they don't depend on this flake.
 
 ## Resources
 
-- [FAQ](https://tinytapeout.com/faq/)
-- [Digital design lessons](https://tinytapeout.com/digital_design/)
-- [Learn how semiconductors work](https://tinytapeout.com/siliwiz/)
-- [Join the community](https://tinytapeout.com/discord)
-- [Build your design locally](https://www.tinytapeout.com/guides/local-hardening/)
-
-## What next?
-
-- [Submit your design to the next shuttle](https://app.tinytapeout.com/).
-- Edit [this README](README.md) and explain your design, how it works, and how to test it.
-- Share your project on your social network of choice:
-  - LinkedIn [#tinytapeout](https://www.linkedin.com/search/results/content/?keywords=%23tinytapeout) [@TinyTapeout](https://www.linkedin.com/company/100708654/)
-  - Mastodon [#tinytapeout](https://chaos.social/tags/tinytapeout) [@matthewvenn](https://chaos.social/@matthewvenn)
-  - X (formerly Twitter) [#tinytapeout](https://twitter.com/hashtag/tinytapeout) [@tinytapeout](https://twitter.com/tinytapeout)
-  - Bluesky [@tinytapeout.com](https://bsky.app/profile/tinytapeout.com)
+- [Tiny Tapeout](https://tinytapeout.com) · [FAQ](https://tinytapeout.com/faq/) · [Discord](https://tinytapeout.com/discord)
+- [Local hardening guide](https://www.tinytapeout.com/guides/local-hardening/) · [FPGA breakout guide](https://tinytapeout.com/guides/fpga-breakout/)
+- [LibreLane docs](https://librelane.readthedocs.io/en/stable/)
+- [Submit to the next shuttle](https://app.tinytapeout.com/)

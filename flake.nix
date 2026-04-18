@@ -13,7 +13,26 @@
         "x86_64-linux"
         "aarch64-linux"
       ];
+
+      # Wrap a shell command as a flake app that re-enters the devshell so the
+      # user can run `nix run .#<name>` without first running `nix develop`.
+      mkDevApp = pkgs: name: cmd: {
+        type = "app";
+        program = toString (pkgs.writeShellScript "tt-${name}" ''
+          set -e
+          exec nix develop --command bash -c ${pkgs.lib.escapeShellArg cmd}
+        '');
+      };
     in {
+      apps = forAllSystems (system:
+        let pkgs = nixpkgs.legacyPackages.${system};
+        in {
+          test   = mkDevApp pkgs "test"   "cd test && make -B";
+          harden = mkDevApp pkgs "harden" "./tt/tt_tool.py --harden --no-docker";
+          fpga   = mkDevApp pkgs "fpga"   "./tt/tt_fpga.py harden";
+        }
+      );
+
       devShells = forAllSystems (system:
         let
           pkgs = nixpkgs.legacyPackages.${system};
@@ -31,7 +50,6 @@
               pkgs.pdk-ciel
 
               # Tiny Tapeout tools dependencies
-              # (pkgs.python3.withPackages (ps: [ ps.tkinter ]))
               python
               pkgs.cairosvg
 
@@ -55,8 +73,8 @@
               # Install tt deps
               if [ ! -d "$FLAKE_ROOT/tt/.venv" ]; then
                 echo "Installing tt-support-tools python dependencies..."
-                uv venv --project="$FLAKE_ROOT/tt" --python=${python}
-                uv --project="$FLAKE_ROOT/tt" sync
+                uv venv --project="$FLAKE_ROOT/tt" --python=${python} # Create venv
+                uv --project="$FLAKE_ROOT/tt" sync # Install python dependencies
 
                 echo "Installing testbench python dependencies..."
                 uv --project="$FLAKE_ROOT/tt" add pytest cocotb

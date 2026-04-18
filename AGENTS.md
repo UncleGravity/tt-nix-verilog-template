@@ -14,7 +14,7 @@ Hardening for TT:
 
 Hardening for FPGA:
 `tt/tt_fpga.py harden`
-`tt/tt_fpga.py configure --port /dev/cu.usbmodem2101 --upload --clockrate 12000000`
+`tt/tt_fpga.py configure --port /dev/<tty> --upload --clockrate 12000000`
 
 Testing:
 RTL: `cd test && make -B`

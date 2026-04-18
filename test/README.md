@@ -5,43 +5,45 @@ See below to get started or for more information, check the [website](https://ti
 
 ## Setting up
 
-1. Edit [Makefile](Makefile) and modify `PROJECT_SOURCES` to point to your Verilog files.
+1. Edit [`../info.yaml`](../info.yaml) — `top_module` and `source_files` are read from there by the Makefile, so you don't edit them here.
 2. Edit [tb.v](tb.v) and replace `tt_um_example` with your module name.
+
+The Makefile requires `PDK_ROOT` to be set; the Nix devshell (`nix develop`) sets this automatically.
 
 ## How to run
 
-To run the RTL simulation:
+RTL simulation:
 
 ```sh
 make -B
 ```
 
-To run gatelevel simulation, first harden your project and copy `../runs/wokwi/results/final/verilog/gl/{your_module_name}.v` to `gate_level_netlist.v`.
-
-Then run:
+Gate-level simulation (after running the harden flow — `./tt/tt_tool.py --harden --no-docker` from the repo root):
 
 ```sh
 make -B GATES=yes
 ```
 
-If you wish to save the waveform in VCD format instead of FST format, edit tb.v to use `$dumpfile("tb.vcd");` and then run:
+The Makefile picks up the netlist from `../runs/wokwi/final/pnl/<top_module>.pnl.v` automatically. If you want to test a different netlist, drop it in as `gate_level_netlist.v` and it'll be used instead.
+
+If you wish to save the waveform in VCD format instead of FST, edit `tb.v` to use `$dumpfile("tb.vcd");` and then run:
 
 ```sh
 make -B FST=
 ```
 
-This will generate `tb.vcd` instead of `tb.fst`.
-
 ## How to view the waveform file
+
+Waveforms are written under `sim_build/rtl/tb.fst` (RTL) or `sim_build/gl/tb.fst` (gate-level).
 
 Using GTKWave
 
 ```sh
-gtkwave tb.fst tb.gtkw
+gtkwave sim_build/rtl/tb.fst tb.gtkw
 ```
 
 Using Surfer
 
 ```sh
-surfer tb.fst
+surfer sim_build/rtl/tb.fst
 ```
