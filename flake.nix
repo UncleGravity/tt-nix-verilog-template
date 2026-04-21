@@ -77,7 +77,7 @@
                 uv --project="$FLAKE_ROOT/tt" sync # Install python dependencies
 
                 echo "Installing testbench python dependencies..."
-                uv --project="$FLAKE_ROOT/tt" add pytest cocotb
+                uv --project="$FLAKE_ROOT/tt" add librelane pytest cocotb
               fi
               source "$FLAKE_ROOT/tt/.venv/bin/activate"
 
